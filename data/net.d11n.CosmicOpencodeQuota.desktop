@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=OpenCode Quota
+Comment=OpenCode Go quota usage in the panel
+Comment[de]=OpenCode Go Quota-Verbrauch im Panel
+Type=Application
+Exec=@BIN@
+Terminal=false
+Categories=COSMIC;
+Keywords=COSMIC;Applet;OpenCode;Quota;Usage;
+Icon=net.d11n.CosmicOpencodeQuota
+StartupNotify=true
+NoDisplay=true
+X-CosmicApplet=true
+X-CosmicShrinkable=true
