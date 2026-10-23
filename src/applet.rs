@@ -48,46 +48,106 @@ pub fn percent_used(percent_remaining: f64) -> f64 {
     (100.0 - percent_remaining).clamp(0.0, 100.0)
 }
 
+/// Farbstufe des Verbrauchs, abgeleitet vom ANGEZEIGTEN (gerundeten) Wert:
+/// < 80% normal, ab 80% gelb (Warning), bei 100% rot (Critical).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UsageLevel {
+    Normal,
+    Warning,
+    Critical,
+}
+
+pub fn usage_level(percent_remaining: f64) -> UsageLevel {
+    match percent_used(percent_remaining).round() as i64 {
+        100.. => UsageLevel::Critical,
+        80.. => UsageLevel::Warning,
+        _ => UsageLevel::Normal,
+    }
+}
+
+/// Themefarbe einer Stufe: `None` = Standard-Textfarbe des Panels.
+fn level_color(level: UsageLevel) -> Option<cosmic::iced::Color> {
+    let binding = cosmic::theme::active();
+    let theme = binding.cosmic();
+    match level {
+        UsageLevel::Normal => None,
+        UsageLevel::Warning => Some(theme.warning.base.into()),
+        UsageLevel::Critical => Some(theme.destructive.base.into()),
+    }
+}
+
 /// Panel-Beschriftung: `3% · 22% W · 11% M` (5h · Woche · Monat) — jeweils
 /// der VERBRAUCHTE Anteil (heraufzählend).
 pub fn panel_line(snap: &QuotaSnapshot) -> String {
-    format!(
-        "{} · {} {} · {} {}",
-        percent_label(percent_used(snap.rolling.percent_remaining)),
-        percent_label(percent_used(snap.weekly.percent_remaining)),
-        fl!("panel-week"),
-        percent_label(percent_used(snap.monthly.percent_remaining)),
-        fl!("panel-month")
-    )
+    panel_segments(snap)
+        .iter()
+        .map(|(t, _)| t.as_str())
+        .collect()
 }
 
-/// Popup-Wertzeilen als (Label+Verbrauch, Reset) — Reset rechtsbündig.
-pub fn popup_rows(snap: &QuotaSnapshot) -> Vec<(String, String)> {
+/// Panel-Beschriftung als farbbare Segmente: Prozentwerte mit ihrer
+/// Verbrauchsstufe, Trenner/Buchstaben mit `Normal` (Theme-Farbe).
+pub fn panel_segments(snap: &QuotaSnapshot) -> Vec<(String, UsageLevel)> {
     vec![
         (
-            format!(
-                "{}: {}",
-                fl!("popup-rolling"),
-                percent_label(percent_used(snap.rolling.percent_remaining))
-            ),
-            fl!("resets-in", d = fmt_reset_in(&snap.rolling.resets_at)),
+            percent_label(percent_used(snap.rolling.percent_remaining)),
+            usage_level(snap.rolling.percent_remaining),
+        ),
+        (" · ".to_string(), UsageLevel::Normal),
+        (
+            percent_label(percent_used(snap.weekly.percent_remaining)),
+            usage_level(snap.weekly.percent_remaining),
         ),
         (
-            format!(
-                "{}: {}",
-                fl!("popup-week"),
-                percent_label(percent_used(snap.weekly.percent_remaining))
-            ),
-            fl!("resets-in", d = fmt_reset_in(&snap.weekly.resets_at)),
+            format!(" {} · ", fl!("panel-week")),
+            UsageLevel::Normal,
         ),
         (
-            format!(
-                "{}: {}",
-                fl!("popup-month"),
-                percent_label(percent_used(snap.monthly.percent_remaining))
-            ),
-            fl!("resets-in", d = fmt_reset_in(&snap.monthly.resets_at)),
+            percent_label(percent_used(snap.monthly.percent_remaining)),
+            usage_level(snap.monthly.percent_remaining),
         ),
+        (format!(" {}", fl!("panel-month")), UsageLevel::Normal),
+    ]
+}
+
+/// Popup-Wertzeile: Name, farbbare Prozentangabe, Reset-Zeit.
+pub struct PopupRow {
+    pub name: String,
+    pub percent: String,
+    pub level: UsageLevel,
+    /// Reset-Zeit; `None`, wenn nicht aussagekräftig (5h-Fenster ohne
+    /// jeglichen Verbrauch — der Countdown läuft trotzdem, verwirrt aber).
+    pub reset: Option<String>,
+}
+
+/// Popup-Wertzeilen.
+pub fn popup_rows(snap: &QuotaSnapshot) -> Vec<PopupRow> {
+    // 5h-Fenster: solange kein Verbrauch vorliegt (angezeigter Wert 0%)
+    // keinen Reset-Countdown zeigen.
+    let rolling_reset = if percent_used(snap.rolling.percent_remaining).round() as i64 == 0 {
+        None
+    } else {
+        Some(fl!("resets-in", d = fmt_reset_in(&snap.rolling.resets_at)))
+    };
+    vec![
+        PopupRow {
+            name: fl!("popup-rolling"),
+            percent: percent_label(percent_used(snap.rolling.percent_remaining)),
+            level: usage_level(snap.rolling.percent_remaining),
+            reset: rolling_reset,
+        },
+        PopupRow {
+            name: fl!("popup-week"),
+            percent: percent_label(percent_used(snap.weekly.percent_remaining)),
+            level: usage_level(snap.weekly.percent_remaining),
+            reset: Some(fl!("resets-in", d = fmt_reset_in(&snap.weekly.resets_at))),
+        },
+        PopupRow {
+            name: fl!("popup-month"),
+            percent: percent_label(percent_used(snap.monthly.percent_remaining)),
+            level: usage_level(snap.monthly.percent_remaining),
+            reset: Some(fl!("resets-in", d = fmt_reset_in(&snap.monthly.resets_at))),
+        },
     ]
 }
 
@@ -157,10 +217,16 @@ async fn fetch_snapshot() -> Result<QuotaSnapshot, String> {
 }
 
 fn panel_element(state: &QuotaApplet) -> Element<'_, Message> {
-    let line = match (&state.snapshot, &state.error) {
-        (Some(s), _) => panel_line(s),
-        (None, Some(_)) => fl!("panel-error"),
-        (None, None) => "–".to_string(),
+    // Segmente mit Farbstufen; ohne Daten eine kurze Fehler-/Platzhalterzeile.
+    let segments: Vec<(String, UsageLevel)> = match &state.snapshot {
+        Some(s) => panel_segments(s),
+        None => vec![(
+            match &state.error {
+                Some(_) => fl!("panel-error"),
+                None => "–".to_string(),
+            },
+            UsageLevel::Normal,
+        )],
     };
 
     let mut handle = icon::from_svg_bytes(O_SVG);
@@ -170,13 +236,26 @@ fn panel_element(state: &QuotaApplet) -> Element<'_, Message> {
         .width(Length::Fixed(w as f32))
         .height(Length::Fixed(h as f32));
 
+    let label: Element<'_, Message> = row(
+        segments
+            .into_iter()
+            .map(|(t, level)| {
+                let t = state.core.applet.text(t);
+                match level_color(level) {
+                    Some(c) => t.class(c).into(),
+                    None => t.into(),
+                }
+            }),
+    )
+    .into();
+
     if state.core.applet.is_horizontal() {
-        row![logo, state.core.applet.text(line)]
+        row![logo, label]
             .spacing(4)
             .align_y(Alignment::Center)
             .into()
     } else {
-        column![logo, state.core.applet.text(line)]
+        column![logo, label]
             .spacing(2)
             .align_x(Alignment::Center)
             .into()
@@ -217,10 +296,21 @@ fn popup_element(state: &QuotaApplet) -> Element<'_, Message> {
 
     match &state.snapshot {
         Some(s) => {
-            for (label, reset) in popup_rows(s) {
+            for r in popup_rows(s) {
                 col = col.push(
-                    row![text::heading(label), space::horizontal(), text::body(reset)]
-                        .padding([0, space_m]),
+                    row![
+                        text::heading(format!("{}: ", r.name)),
+                        match level_color(r.level) {
+                            Some(c) => text::heading(r.percent).class(c),
+                            None => text::heading(r.percent),
+                        },
+                        space::horizontal(),
+                    ]
+                    .push_maybe(
+                        r.reset
+                            .map(|t| Element::from(text::body(t))) as Option<Element<'_, Message>>,
+                    )
+                    .padding([0, space_m]),
                 );
             }
         }

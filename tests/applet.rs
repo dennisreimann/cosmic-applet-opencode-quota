@@ -1,5 +1,6 @@
 use cosmic_applet_opencode_quota::applet::{
-    fmt_reset_in, fmt_updated, format_duration, panel_line, percent_label, percent_used, popup_rows,
+    fmt_reset_in, fmt_updated, format_duration, panel_line, panel_segments, percent_label,
+    percent_used, popup_rows, usage_level, UsageLevel,
 };
 use cosmic_applet_opencode_quota::quota::{QuotaSnapshot, QuotaWindow};
 use std::sync::Once;
@@ -61,12 +62,74 @@ fn popup_rows_split_label_and_reset() {
     force_en();
     let rows = popup_rows(&snap());
     assert_eq!(rows.len(), 3);
-    assert_eq!(rows[0].0, "5h: 3%");
-    assert!(rows[0].1.starts_with("Resets in "));
-    assert_eq!(rows[1].0, "W: 22%");
-    assert!(rows[1].1.starts_with("Resets in "));
-    assert_eq!(rows[2].0, "M: 11%");
-    assert!(rows[2].1.starts_with("Resets in "));
+    assert_eq!(rows[0].name, "5h");
+    assert_eq!(rows[0].percent, "3%");
+    assert!(rows[0].reset.as_deref().unwrap().starts_with("Resets in "));
+    assert_eq!(rows[1].name, "W");
+    assert_eq!(rows[1].percent, "22%");
+    assert!(rows[1].reset.as_deref().unwrap().starts_with("Resets in "));
+    assert_eq!(rows[2].name, "M");
+    assert_eq!(rows[2].percent, "11%");
+    assert!(rows[2].reset.as_deref().unwrap().starts_with("Resets in "));
+}
+
+#[test]
+fn popup_rolling_reset_hidden_when_unused() {
+    force_en();
+    // 5h-Fenster völlig unangetastet: kein Reset-Text (der Timer läuft
+    // trotzdem, ist aber ohne Verbrauch nicht aussagekräftig).
+    let mut s = snap();
+    s.rolling.percent_remaining = 100.0;
+    let rows = popup_rows(&s);
+    assert_eq!(rows[0].percent, "0%");
+    assert_eq!(rows[0].reset, None);
+    // Woche/Monat behalten ihren Reset auch bei 0% Verbrauch (Periodenende).
+    s.weekly.percent_remaining = 100.0;
+    s.monthly.percent_remaining = 100.0;
+    let rows = popup_rows(&s);
+    assert!(rows[1].reset.is_some());
+    assert!(rows[2].reset.is_some());
+}
+
+#[test]
+fn usage_level_thresholds() {
+    // unter 80% verbraucht: normal
+    assert_eq!(usage_level(97.0), UsageLevel::Normal); // 3% used
+    assert_eq!(usage_level(20.6), UsageLevel::Normal); // 79.4 → zeigt "79%"
+    assert_eq!(usage_level(20.5), UsageLevel::Warning); // 79.5 → rundet auf 80
+    // ab 80% verbraucht: gelb
+    assert_eq!(usage_level(20.0), UsageLevel::Warning); // exakt 80
+    assert_eq!(usage_level(15.0), UsageLevel::Warning); // 85
+    // ab 100% verbraucht: rot
+    assert_eq!(usage_level(0.0), UsageLevel::Critical); // 100
+    // Rundung entspricht dem ANGEZEIGTEN Wert
+    assert_eq!(usage_level(20.4), UsageLevel::Warning); // 79.6 → zeigt "80%"
+    assert_eq!(usage_level(0.4), UsageLevel::Critical); // 99.6 → zeigt "100%"
+    assert_eq!(usage_level(21.0), UsageLevel::Normal); // 79.0 → zeigt "79%"
+}
+
+#[test]
+fn panel_segments_color_percentages_only() {
+    force_en();
+    let mut s = snap();
+    s.rolling.percent_remaining = 85.0; // 15% used → normal
+    s.weekly.percent_remaining = 15.0; // 85% used → gelb
+    s.monthly.percent_remaining = 0.0; // 100% used → rot
+    let segs = panel_segments(&s);
+    assert_eq!(
+        segs,
+        vec![
+            ("15%".to_string(), UsageLevel::Normal),
+            (" · ".to_string(), UsageLevel::Normal),
+            ("85%".to_string(), UsageLevel::Warning),
+            (" W · ".to_string(), UsageLevel::Normal),
+            ("100%".to_string(), UsageLevel::Critical),
+            (" M".to_string(), UsageLevel::Normal),
+        ]
+    );
+    // Zusammengesetzt ergibt das weiterhin die bekannte Zeile.
+    let joined: String = segs.iter().map(|(t, _)| t.as_str()).collect();
+    assert_eq!(joined, panel_line(&s));
 }
 
 #[test]

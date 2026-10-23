@@ -63,12 +63,20 @@ struct RawWindow {
 }
 
 fn normalize(name: &str, w: RawWindow) -> Result<QuotaWindow, QuotaError> {
-    if w.status != "ok" {
-        return Err(QuotaError::Contract(format!("{name} status is not ok")));
-    }
-    let percent = w
-        .percent
-        .ok_or_else(|| QuotaError::Contract(format!("{name} percent missing")))?;
+    // The API reports "rate-limited" instead of "ok" once a window is exhausted.
+    // In that state the quota is fully consumed; the API reports percent 100,
+    // but be defensive and default to 100 if it is absent.
+    let percent = match w.status.as_str() {
+        "ok" => Some(
+            w.percent
+                .ok_or_else(|| QuotaError::Contract(format!("{name} percent missing")))?,
+        ),
+        "rate-limited" => Some(w.percent.unwrap_or(100.0)),
+        _ => None,
+    };
+    let percent = percent.ok_or_else(|| {
+        QuotaError::Contract(format!("{name} status is not ok or rate-limited"))
+    })?;
     if !percent.is_finite() || !(0.0..=100.0).contains(&percent) {
         return Err(QuotaError::Contract(format!(
             "{name} percent must be finite from 0 to 100"

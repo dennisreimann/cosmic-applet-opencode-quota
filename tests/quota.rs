@@ -45,6 +45,30 @@ fn bad_status_is_contract_error() {
 }
 
 #[test]
+fn rate_limited_window_is_valid_with_zero_remaining() {
+    let raw = br#"{"usage": {
+        "rolling": { "status":"ok","percent":0,"resetsAt":"2026-10-23T20:10:41.862Z" },
+        "weekly":  { "status":"rate-limited","percent":100,"resetsAt":"2026-10-26T00:00:00.000Z" },
+        "monthly": { "status":"ok","percent":86,"resetsAt":"2026-10-30T11:50:44.000Z" }
+    } }"#;
+    let snap = parse_status(raw).expect("rate-limited window must parse");
+    assert_eq!(snap.weekly.percent_remaining, 0.0);
+    assert_eq!(snap.rolling.percent_remaining, 100.0);
+    assert_eq!(snap.monthly.percent_remaining, 14.0);
+}
+
+#[test]
+fn rate_limited_window_without_percent_defaults_to_zero_remaining() {
+    let raw = br#"{"usage": {
+        "rolling": { "status":"ok","percent":0,"resetsAt":"2026-10-23T20:10:41.862Z" },
+        "weekly":  { "status":"rate-limited","resetsAt":"2026-10-26T00:00:00.000Z" },
+        "monthly": { "status":"ok","percent":86,"resetsAt":"2026-10-30T11:50:44.000Z" }
+    } }"#;
+    let snap = parse_status(raw).expect("rate-limited without percent must parse");
+    assert_eq!(snap.weekly.percent_remaining, 0.0);
+}
+
+#[test]
 fn percent_out_of_range_is_contract_error() {
     let raw = br#"{"usage": {
         "rolling": { "status":"ok","percent":150,"resetsAt":"2026-09-01T20:00:00+02:00" },
