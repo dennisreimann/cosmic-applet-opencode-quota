@@ -35,7 +35,7 @@ install -Dm0755 target/release/cosmic-applet-opencode-quota ~/.local/bin/
 sed "s|@BIN@|$HOME/.local/bin/cosmic-applet-opencode-quota|" \
   data/net.d11n.CosmicOpencodeQuota.desktop \
   > ~/.local/share/applications/net.d11n.CosmicOpencodeQuota.desktop
-install -Dm0644 o.svg ~/.local/share/icons/hicolor/scalable/apps/net.d11n.CosmicOpencodeQuota.svg
+install -Dm0644 assets/o.svg ~/.local/share/icons/hicolor/scalable/apps/net.d11n.CosmicOpencodeQuota.svg
 ```
 
 ## Data source

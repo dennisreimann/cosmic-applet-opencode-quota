@@ -12,7 +12,7 @@ use std::time::Duration;
 pub const APP_ID: &str = "net.d11n.CosmicOpencodeQuota";
 
 const REFRESH_INTERVAL: Duration = Duration::from_secs(60);
-const O_SVG: &[u8] = include_bytes!("../o.svg");
+const O_SVG: &[u8] = include_bytes!("../assets/o.svg");
 
 static AUTOSIZE_MAIN_ID: LazyLock<Id> = LazyLock::new(|| Id::new("autosize-main"));
 

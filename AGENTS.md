@@ -81,7 +81,7 @@ For panel/applet behavior see the source of `pop-os/cosmic-applets`
   - Binary → `~/.local/bin/cosmic-applet-opencode-quota`
   - Applet discovery → `~/.local/share/applications/net.d11n.CosmicOpencodeQuota.desktop`
     (desktop entry with `X-CosmicApplet=true`, `Exec=<absolute path>`, `NoDisplay=true`).
-  - Icon → `~/.local/share/icons/hicolor/scalable/apps/net.d11n.CosmicOpencodeQuota.svg` (the `o.svg`).
+  - Icon → `~/.local/share/icons/hicolor/scalable/apps/net.d11n.CosmicOpencodeQuota.svg` (the `assets/o.svg`).
 - Panel configuration: `~/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings`
   (RON `Some((left, right_wing))`). The applet sits in the right wing in front of
   `com.system76.CosmicAppletStatusArea`. The panel hot-reloads applets on config changes

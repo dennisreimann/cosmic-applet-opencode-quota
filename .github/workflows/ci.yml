@@ -62,9 +62,9 @@ jobs:
 
       - name: Install script packaging
         run: |
-          mkdir -p dist
+          mkdir -p dist/assets
           cp target/release/cosmic-applet-opencode-quota dist/
-          cp o.svg dist/
+          cp assets/o.svg dist/assets/
           cp data/net.d11n.CosmicOpencodeQuota.desktop dist/
           cp install.sh dist/
           chmod +x dist/install.sh

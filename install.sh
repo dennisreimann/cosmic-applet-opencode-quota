@@ -6,7 +6,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_ID="net.d11n.CosmicOpencodeQuota"
 DESKTOP_SRC="$HERE/net.d11n.CosmicOpencodeQuota.desktop"
-ICON_SRC="$HERE/o.svg"
+ICON_SRC="$HERE/assets/o.svg"
 BIN_SRC="$HERE/cosmic-applet-opencode-quota"
 
 BINDIR="${BINDIR:-$HOME/.local/bin}"
