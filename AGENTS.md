@@ -17,6 +17,15 @@ impossible there. The correct path is a **native COSMIC applet**
 (`cosmic::applet::run`) that renders arbitrary text at panel height with
 `core.applet.text(...)` (automatic theming: white/black depending on dark/light).
 
+## Fetch failure semantics (keep last state)
+
+`Message::Fetched(Ok)` replaces the snapshot and clears the error;
+`Message::Fetched(Err)` only records the error — the last snapshot (values
+and the "Updated" clock) stays untouched, so a broken connection never
+blanks the panel or popup. The panel shows the error text only when there
+has never been a successful fetch (snapshot is `None`). Do not "fix" this
+by clearing state on errors.
+
 ## Data source
 
 - **API:** `GET https://opencode.ai/zen/go/v1/usage` — headers

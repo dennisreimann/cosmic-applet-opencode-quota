@@ -1023,7 +1023,7 @@ dependencies = [
 
 [[package]]
 name = "cosmic-applet-opencode-quota"
-version = "0.1.0"
+version = "1.1.0"
 dependencies = [
  "anyhow",
  "chrono",
