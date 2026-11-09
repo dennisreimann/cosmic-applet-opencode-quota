@@ -85,6 +85,9 @@ For panel/applet behavior see the source of `pop-os/cosmic-applets`
   in both catalogs (`i18n/en/…`, `i18n/de/…`) — the `fl!` macro validates against the EN catalog
   at compile time.
 - Lint: `cargo clippy --all-targets -- -D warnings`.
+- Before a release: update dependencies to the latest versions
+  (`cargo update` in Cargo.lock; check for available major bumps in
+  `Cargo.toml`), then run the full test suite and clippy again.
 - Release: `cargo build --release` (10–15 min, iced/libcosmic are heavy).
 - Install (user-local):
   - Binary → `~/.local/bin/cosmic-applet-opencode-quota`
