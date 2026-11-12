@@ -8,12 +8,44 @@ pub struct QuotaWindow {
     pub resets_at: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct QuotaSnapshot {
     pub rolling: QuotaWindow,
     pub weekly: QuotaWindow,
     pub monthly: QuotaWindow,
     pub fetched_at_unix: i64,
+}
+
+#[derive(Deserialize)]
+struct RawQuotaSnapshot {
+    rolling: QuotaWindow,
+    weekly: QuotaWindow,
+    monthly: QuotaWindow,
+    fetched_at_unix: i64,
+}
+
+impl<'de> Deserialize<'de> for QuotaSnapshot {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = RawQuotaSnapshot::deserialize(deserializer)?;
+        let snapshot = QuotaSnapshot {
+            rolling: raw.rolling,
+            weekly: raw.weekly,
+            monthly: raw.monthly,
+            fetched_at_unix: raw.fetched_at_unix,
+        };
+        for window in [&snapshot.rolling, &snapshot.weekly, &snapshot.monthly] {
+            if !window.percent_remaining.is_finite()
+                || !(0.0..=100.0).contains(&window.percent_remaining)
+            {
+                return Err(serde::de::Error::custom(
+                    "cached percentage is out of range",
+                ));
+            }
+            chrono::DateTime::parse_from_rfc3339(&window.resets_at)
+                .map_err(|_| serde::de::Error::custom("cached reset timestamp is invalid"))?;
+        }
+        Ok(snapshot)
+    }
 }
 
 impl QuotaSnapshot {
@@ -39,21 +71,18 @@ impl fmt::Display for QuotaError {
         }
     }
 }
-
 impl std::error::Error for QuotaError {}
 
 #[derive(Deserialize)]
 struct RawResponse {
     usage: RawUsage,
 }
-
 #[derive(Deserialize)]
 struct RawUsage {
     rolling: RawWindow,
     weekly: RawWindow,
     monthly: RawWindow,
 }
-
 #[derive(Deserialize)]
 struct RawWindow {
     status: String,
@@ -63,9 +92,6 @@ struct RawWindow {
 }
 
 fn normalize(name: &str, w: RawWindow) -> Result<QuotaWindow, QuotaError> {
-    // The API reports "rate-limited" instead of "ok" once a window is exhausted.
-    // In that state the quota is fully consumed; the API reports percent 100,
-    // but be defensive and default to 100 if it is absent.
     let percent = match w.status.as_str() {
         "ok" => Some(
             w.percent
@@ -73,10 +99,8 @@ fn normalize(name: &str, w: RawWindow) -> Result<QuotaWindow, QuotaError> {
         ),
         "rate-limited" => Some(w.percent.unwrap_or(100.0)),
         _ => None,
-    };
-    let percent = percent.ok_or_else(|| {
-        QuotaError::Contract(format!("{name} status is not ok or rate-limited"))
-    })?;
+    }
+    .ok_or_else(|| QuotaError::Contract(format!("{name} status is not ok or rate-limited")))?;
     if !percent.is_finite() || !(0.0..=100.0).contains(&percent) {
         return Err(QuotaError::Contract(format!(
             "{name} percent must be finite from 0 to 100"
@@ -85,11 +109,9 @@ fn normalize(name: &str, w: RawWindow) -> Result<QuotaWindow, QuotaError> {
     let resets_at = w
         .resets_at
         .ok_or_else(|| QuotaError::Contract(format!("{name} resetsAt missing")))?;
-    if resets_at.trim().is_empty() {
-        return Err(QuotaError::Contract(format!(
-            "{name} resetsAt must not be empty"
-        )));
-    }
+    let resets_at = chrono::DateTime::parse_from_rfc3339(&resets_at)
+        .map(|date| date.to_rfc3339())
+        .map_err(|_| QuotaError::Contract(format!("{name} resetsAt must be valid RFC3339")))?;
     Ok(QuotaWindow {
         percent_remaining: 100.0 - percent,
         resets_at,
@@ -98,17 +120,14 @@ fn normalize(name: &str, w: RawWindow) -> Result<QuotaWindow, QuotaError> {
 
 pub fn parse_status(raw: &[u8]) -> Result<QuotaSnapshot, QuotaError> {
     let parsed: RawResponse = serde_json::from_slice(raw).map_err(QuotaError::Json)?;
-    let rolling = normalize("rolling", parsed.usage.rolling)?;
-    let weekly = normalize("weekly", parsed.usage.weekly)?;
-    let monthly = normalize("monthly", parsed.usage.monthly)?;
     let fetched_at_unix = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0);
     Ok(QuotaSnapshot {
-        rolling,
-        weekly,
-        monthly,
+        rolling: normalize("rolling", parsed.usage.rolling)?,
+        weekly: normalize("weekly", parsed.usage.weekly)?,
+        monthly: normalize("monthly", parsed.usage.monthly)?,
         fetched_at_unix,
     })
 }

@@ -9,10 +9,7 @@ fn force_de() {
 #[test]
 fn german_catalog_is_loaded() {
     force_de();
-    assert_eq!(
-        cosmic_applet_opencode_quota::fl!("no-data"),
-        "Keine Daten"
-    );
+    assert_eq!(cosmic_applet_opencode_quota::fl!("no-data"), "Keine Daten");
     assert_eq!(cosmic_applet_opencode_quota::fl!("quit"), "Beenden");
     assert_eq!(
         cosmic_applet_opencode_quota::fl!("resets-in", d = "2 Tagen"),

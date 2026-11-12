@@ -21,9 +21,7 @@ impl std::error::Error for ApiError {}
 fn is_retryable_status(code: StatusCode) -> bool {
     matches!(
         code,
-        StatusCode::REQUEST_TIMEOUT
-            | StatusCode::TOO_EARLY
-            | StatusCode::TOO_MANY_REQUESTS
+        StatusCode::REQUEST_TIMEOUT | StatusCode::TOO_EARLY | StatusCode::TOO_MANY_REQUESTS
     ) || code.is_server_error()
 }
 

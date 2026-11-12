@@ -35,5 +35,7 @@ pub fn resolve_api_key(auth_file: Option<&Path>) -> Option<String> {
             }
         }
     }
-    std::env::var("OPENCODE_API_KEY").ok().filter(|k| !k.is_empty())
+    std::env::var("OPENCODE_API_KEY")
+        .ok()
+        .filter(|k| !k.is_empty())
 }

@@ -4,9 +4,18 @@ use tempfile::tempdir;
 
 fn snap() -> QuotaSnapshot {
     QuotaSnapshot {
-        rolling: QuotaWindow { percent_remaining: 42.0, resets_at: "r".into() },
-        weekly: QuotaWindow { percent_remaining: 15.0, resets_at: "w".into() },
-        monthly: QuotaWindow { percent_remaining: 80.0, resets_at: "m".into() },
+        rolling: QuotaWindow {
+            percent_remaining: 42.0,
+            resets_at: "2026-09-07T00:00:00Z".into(),
+        },
+        weekly: QuotaWindow {
+            percent_remaining: 15.0,
+            resets_at: "2026-09-14T00:00:00Z".into(),
+        },
+        monthly: QuotaWindow {
+            percent_remaining: 80.0,
+            resets_at: "2026-10-01T00:00:00Z".into(),
+        },
         fetched_at_unix: 123,
     }
 }

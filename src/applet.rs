@@ -3,7 +3,7 @@ use chrono::{DateTime, Local};
 use cosmic::app::{Core, Task};
 use cosmic::cosmic_theme::Spacing;
 use cosmic::iced::platform_specific::shell::wayland::commands::popup::{destroy_popup, get_popup};
-use cosmic::iced::{Alignment, Length, Rectangle, window};
+use cosmic::iced::{window, Alignment, Length, Rectangle};
 use cosmic::widget::{autosize, button, column, container, divider, icon, row, space, text, Id};
 use cosmic::{applet, theme, Action, Element};
 use std::sync::LazyLock;
@@ -98,10 +98,7 @@ pub fn panel_segments(snap: &QuotaSnapshot) -> Vec<(String, UsageLevel)> {
             percent_label(percent_used(snap.weekly.percent_remaining)),
             usage_level(snap.weekly.percent_remaining),
         ),
-        (
-            format!(" {} · ", fl!("panel-week")),
-            UsageLevel::Normal,
-        ),
+        (format!(" {} · ", fl!("panel-week")), UsageLevel::Normal),
         (
             percent_label(percent_used(snap.monthly.percent_remaining)),
             usage_level(snap.monthly.percent_remaining),
@@ -236,17 +233,13 @@ fn panel_element(state: &QuotaApplet) -> Element<'_, Message> {
         .width(Length::Fixed(w as f32))
         .height(Length::Fixed(h as f32));
 
-    let label: Element<'_, Message> = row(
-        segments
-            .into_iter()
-            .map(|(t, level)| {
-                let t = state.core.applet.text(t);
-                match level_color(level) {
-                    Some(c) => t.class(c).into(),
-                    None => t.into(),
-                }
-            }),
-    )
+    let label: Element<'_, Message> = row(segments.into_iter().map(|(t, level)| {
+        let t = state.core.applet.text(t);
+        match level_color(level) {
+            Some(c) => t.class(c).into(),
+            None => t.into(),
+        }
+    }))
     .into();
 
     if state.core.applet.is_horizontal() {
@@ -263,7 +256,12 @@ fn panel_element(state: &QuotaApplet) -> Element<'_, Message> {
 }
 
 fn popup_element(state: &QuotaApplet) -> Element<'_, Message> {
-    let Spacing { space_xxs, space_s, space_m, .. } = cosmic::theme::active().cosmic().spacing;
+    let Spacing {
+        space_xxs,
+        space_s,
+        space_m,
+        ..
+    } = cosmic::theme::active().cosmic().spacing;
     // Nur vertikales Padding an der Spalte — horizontale Insets bekommt jede
     // Zeile selbst, damit das Hover-Highlight der Menü-Zeile randlos ist.
     // Oben mehr Luft (Titelzeile), unten knapp (Trennlinie sitzt direkt darüber).
@@ -306,10 +304,8 @@ fn popup_element(state: &QuotaApplet) -> Element<'_, Message> {
                         },
                         space::horizontal(),
                     ]
-                    .push_maybe(
-                        r.reset
-                            .map(|t| Element::from(text::body(t))) as Option<Element<'_, Message>>,
-                    )
+                    .push_maybe(r.reset.map(|t| Element::from(text::body(t)))
+                        as Option<Element<'_, Message>>)
                     .padding([0, space_m]),
                 );
             }
@@ -436,10 +432,7 @@ impl cosmic::Application for QuotaApplet {
     }
 
     fn view_window(&self, _id: window::Id) -> Element<'_, Message> {
-        self.core
-            .applet
-            .popup_container(popup_element(self))
-            .into()
+        self.core.applet.popup_container(popup_element(self)).into()
     }
 
     fn on_close_requested(&self, id: window::Id) -> Option<Message> {

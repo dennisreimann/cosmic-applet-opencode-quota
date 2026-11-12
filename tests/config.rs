@@ -17,8 +17,14 @@ fn write_auth(dir: &tempfile::TempDir, obj: serde_json::Value) -> std::path::Pat
 #[test]
 fn resolve_key_from_auth_file() {
     let dir = tempdir().unwrap();
-    let auth = write_auth(&dir, json!({"opencode-go": {"type": "api", "key": "super-secret"}}));
-    assert_eq!(resolve_api_key(Some(&auth)).as_deref(), Some("super-secret"));
+    let auth = write_auth(
+        &dir,
+        json!({"opencode-go": {"type": "api", "key": "super-secret"}}),
+    );
+    assert_eq!(
+        resolve_api_key(Some(&auth)).as_deref(),
+        Some("super-secret")
+    );
 }
 
 #[test]

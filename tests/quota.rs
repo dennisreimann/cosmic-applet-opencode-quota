@@ -80,5 +80,8 @@ fn percent_out_of_range_is_contract_error() {
 
 #[test]
 fn invalid_json_is_json_error() {
-    assert!(matches!(parse_status(b"not json"), Err(QuotaError::Json(_))));
+    assert!(matches!(
+        parse_status(b"not json"),
+        Err(QuotaError::Json(_))
+    ));
 }

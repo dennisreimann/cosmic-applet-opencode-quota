@@ -1,0 +1,6 @@
+{
+    "rolling":{"percent_remaining":42.0,"resets_at":"not-a-time"},
+    "weekly":{"percent_remaining":15.0,"resets_at":"2026-09-07T00:00:00Z"},
+    "monthly":{"percent_remaining":80.0,"resets_at":"2026-09-30T11:51:07Z"},
+    "fetched_at_unix":1788278419
+}

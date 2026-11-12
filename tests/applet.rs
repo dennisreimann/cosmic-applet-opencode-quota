@@ -97,12 +97,12 @@ fn usage_level_thresholds() {
     assert_eq!(usage_level(97.0), UsageLevel::Normal); // 3% used
     assert_eq!(usage_level(20.6), UsageLevel::Normal); // 79.4 → zeigt "79%"
     assert_eq!(usage_level(20.5), UsageLevel::Warning); // 79.5 → rundet auf 80
-    // ab 80% verbraucht: gelb
+                                                        // ab 80% verbraucht: gelb
     assert_eq!(usage_level(20.0), UsageLevel::Warning); // exakt 80
     assert_eq!(usage_level(15.0), UsageLevel::Warning); // 85
-    // ab 100% verbraucht: rot
+                                                        // ab 100% verbraucht: rot
     assert_eq!(usage_level(0.0), UsageLevel::Critical); // 100
-    // Rundung entspricht dem ANGEZEIGTEN Wert
+                                                        // Rundung entspricht dem ANGEZEIGTEN Wert
     assert_eq!(usage_level(20.4), UsageLevel::Warning); // 79.6 → zeigt "80%"
     assert_eq!(usage_level(0.4), UsageLevel::Critical); // 99.6 → zeigt "100%"
     assert_eq!(usage_level(21.0), UsageLevel::Normal); // 79.0 → zeigt "79%"
