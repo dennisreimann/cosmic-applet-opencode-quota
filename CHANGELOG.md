@@ -11,6 +11,15 @@ then renamed to the new version and emptied).
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-13
+
+### Fixed
+
+- Dependency refresh closes the Dependabot findings (rustls ≥ 0.23.46,
+  quinn-proto ≥ 0.11.15) via targeted `cargo update`; dirs updated to 7.
+- libcosmic is now pinned to the verified revision so `cargo update`
+  cannot silently move the applet's UI base (see AGENTS.md).
+
 ## [1.2.0] - 2026-11-13
 
 ### Fixed
