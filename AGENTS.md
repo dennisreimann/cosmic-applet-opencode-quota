@@ -99,10 +99,43 @@ For panel/applet behavior see the source of `pop-os/cosmic-applets`
   `com.system76.CosmicAppletStatusArea`. The panel hot-reloads applets on config changes
   (toggle remove + re-add to force a respawn).
 
-## Known open issues
+## Reliability patterns (v1.2.0)
 
-- **Click popup:** implemented with the official libcosmic example pattern, but
-  a popup is currently NOT shown at the panel (as of the last build). Root cause
-  not yet fully determined — check this first when continuing work.
-- Hover tooltip was originally planned but was removed (to reduce variables)
-  until the popup works.
+- **Cache validation:** `QuotaSnapshot` deserializes through a validating
+  custom `Deserialize` impl — each window's percent must be finite 0–100 and
+  `resetsAt` valid RFC3339; otherwise `cache::load_snapshot` returns `None`
+  (fresh data is fetched instead). The API parser (`quota::normalize`)
+  enforces the same shape, so cache and API share one contract.
+- **Error display:** a refresh error is shown in the popup (`error-line`)
+  even while the last cached snapshot is still displayed — old data stays,
+  but is not presented as fresh. Cache write failures are logged via
+  `tracing::warn` instead of being swallowed.
+- **Installer:** `install.sh` works from a source checkout
+  (`target/release/…`) as well as an extracted release archive, from any cwd.
+
+## Deferred: multi-provider balance
+
+Research notes from the retired spec (`docs/superpowers/specs/`), folded
+here so the verified API facts survive:
+
+- **PPQ.ai — usable, documented balance endpoint:** OpenAI-compatible,
+  base `https://api.ppq.ai`, keys `sk-…` (Bearer). Documented:
+  `POST https://api.ppq.ai/credits/balance` — auth via Bearer key, `api-key:`
+  header, or `{"credit_id": "…"}` body; response `{"balance": <USDT>}`.
+  Pay-per-query; `402 Payment Required` signals too-low balance.
+  Source of truth: `https://ppq.ai/llms.txt`. PPQ data is absolute USD
+  remaining, NOT a percent — color thresholds must be independent
+  (e.g. yellow < $5, red < $1).
+- **Z.ai — blocked:** no balance/billing API for API keys (checked
+  openapi.json + llms.txt, probed ~16 candidate `/api/biz/*` paths — all
+  404/405); billing lives only in the web console with session cookies.
+  Balance would require cookie scraping — deliberately NOT implemented
+  (project principle). Revisit only if Z.ai ships an official endpoint.
+- **No OpenCode Zen balance exists** either (see Data source above).
+- **Design direction if resumed (Option A, recommended):** small
+  `QuotaSource` trait/enum; per provider fetcher, key resolution
+  (generalize `resolve_api_key`), cache file and display block.
+  OpenCode Go stays the percent-provider; PPQ is a balance-provider with
+  `$X.XX` formatting. Display decision open: second panel segment vs
+  popup-only row. Open questions: PPQ key location, panel-vs-popup,
+  dollar thresholds.
