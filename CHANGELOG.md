@@ -11,6 +11,19 @@ then renamed to the new version and emptied).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-13
+
+### Fixed
+
+- Cached snapshots are validated on load (percent finite 0–100, resetsAt
+  valid RFC3339); malformed cache files are discarded instead of
+  displayed as current data.
+- A refresh error is now shown in the popup even while the last cached
+  snapshot is displayed; cache write failures are logged instead of
+  swallowed.
+- `install.sh` also works from a source checkout (`target/release/…`),
+  not only from an extracted release archive.
+
 ## [1.1.0] - 2026-10-23
 
 ### Fixed
