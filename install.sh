@@ -6,8 +6,12 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_ID="net.d11n.CosmicOpencodeQuota"
 DESKTOP_SRC="$HERE/net.d11n.CosmicOpencodeQuota.desktop"
+[ -f "$DESKTOP_SRC" ] || DESKTOP_SRC="$HERE/data/net.d11n.CosmicOpencodeQuota.desktop"
 ICON_SRC="$HERE/assets/o.svg"
 BIN_SRC="$HERE/cosmic-applet-opencode-quota"
+if [ ! -x "$BIN_SRC" ]; then
+    BIN_SRC="$HERE/target/release/cosmic-applet-opencode-quota"
+fi
 
 BINDIR="${BINDIR:-$HOME/.local/bin}"
 DATADIR="${DATADIR:-$HOME/.local/share}"
@@ -20,6 +24,7 @@ install -Dm0755 "$BIN_SRC" "$BINDIR/cosmic-applet-opencode-quota"
 install -Dm0644 "$ICON_SRC" "$DATADIR/icons/hicolor/scalable/apps/$APP_ID.svg"
 
 DESKTOP_DST="$DATADIR/applications/$APP_ID.desktop"
+mkdir -p "$DATADIR/applications"
 sed "s|@BIN@|$BINDIR/cosmic-applet-opencode-quota|" "$DESKTOP_SRC" > "$DESKTOP_DST"
 
 echo "Installed:"
