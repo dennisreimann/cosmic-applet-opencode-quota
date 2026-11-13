@@ -208,7 +208,9 @@ async fn fetch_snapshot() -> Result<QuotaSnapshot, String> {
         .await
         .map_err(|e| e.message)?;
     if let Some(path) = config::default_cache_path() {
-        let _ = cache::save_snapshot(&path, &snap);
+        if let Err(error) = cache::save_snapshot(&path, &snap) {
+            tracing::warn!("Konnte OpenCode-Cache nicht schreiben: {error}");
+        }
     }
     Ok(snap)
 }
@@ -316,6 +318,12 @@ fn popup_element(state: &QuotaApplet) -> Element<'_, Message> {
                 None => fl!("no-data"),
             };
             col = col.push(container(text::body(msg)).padding([0, space_m]));
+        }
+    }
+    if state.snapshot.is_some() {
+        if let Some(error) = &state.error {
+            col =
+                col.push(container(text::body(fl!("error-line", e = error))).padding([0, space_m]));
         }
     }
 
