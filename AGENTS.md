@@ -91,6 +91,16 @@ For panel/applet behavior see the source of `pop-os/cosmic-applets`
   Never tag a release from a stale Cargo.lock — v1.2.0 shipped outdated
   transitive dependencies (Dependabot warnings); the patch release fixed
   that.
+- **Vendored dbus-settings-bindings crates:** upstream renamed
+  `cosmic-settings-daemon` → `cosmic-settings-daemon-zbus` and
+  `switcheroo-control` → `switcheroo-control-zbus` on `main`; the pinned
+  libcosmic rev still needs the old names. Both crates are vendored in
+  `vendor/` and wired up via `[patch.'https://github.com/pop-os/
+dbus-settings-bindings']` (path patches — a rev/branch patch fails with
+  cargo's same-source rule). With these patches in place `cargo update`
+  works fully again; if the libcosmic pin is ever raised to a rev using
+  the zbus-6 bindings, the patch entries and `vendor/` can go away
+  (details in `vendor/*/README.md`).
 - Release: `cargo build --release` (10–15 min, iced/libcosmic are heavy).
 - Install (user-local):
   - Binary → `~/.local/bin/cosmic-applet-opencode-quota`
